@@ -1,11 +1,12 @@
 {
   "schemaVersion": 1,
-  "id": "addon-template",
+  "id": "butler-addon",
   "version": "${version}",
-  "name": "Addon Template",
-  "description": "An addon template for the Meteor addons.",
+  "name": "Butler Addon",
+  "description": "Added functionality to the swarm module.",
   "authors": [
-    "seasnail"
+    "obvWolf",
+    "ImproperIssues"
   ],
   "contact": {
     "repo": "https://github.com/MeteorDevelopment/meteor-addon-template"
@@ -14,7 +15,7 @@
   "environment": "client",
   "entrypoints": {
     "meteor": [
-      "com.example.addon.Addon"
+      "me.trouper.butler.Addon"
     ]
   },
   "mixins": [
