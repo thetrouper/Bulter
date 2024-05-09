@@ -7,6 +7,7 @@ import me.trouper.butler.server.Response;
 import me.trouper.butler.utils.MathUtils;
 import me.trouper.butler.utils.Text;
 import meteordevelopment.meteorclient.MeteorClient;
+import meteordevelopment.meteorclient.pathing.PathManagers;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.config.Config;
 import meteordevelopment.meteorclient.systems.modules.Module;
@@ -146,7 +147,7 @@ public class SwarmPlusWorker extends Module {
                         System.exit(0);
                     }
                     default -> {
-                        SwarmPlusWorker.this.error("An error occurred when receiving a packet from the host. (highlight)%s",full);
+                        SwarmPlusWorker.this.error("An error occurred when receiving a packet from the host. (highlight)%s", full);
                     }
                 }
             }
