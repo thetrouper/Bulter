@@ -7,6 +7,6 @@ public class ConnectionThread extends Thread {
     }
 
     protected void info(String str, Object... args) {
-        System.out.println(getName() + " Info: " + str.formatted(args));
+        //System.out.println(getName() + " Info: " + str.formatted(args));
     }
 }

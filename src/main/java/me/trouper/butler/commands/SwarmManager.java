@@ -5,6 +5,7 @@ import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import io.netty.util.concurrent.CompleteFuture;
 import me.trouper.butler.modules.SwarmPlusMaster;
 import me.trouper.butler.server.Connection;
 import me.trouper.butler.utils.MathUtils;
@@ -25,6 +26,7 @@ import net.minecraft.util.math.BlockPos;
 import java.awt.geom.Point2D;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.*;
 
 import static com.mojang.brigadier.Command.SINGLE_SUCCESS;
 
@@ -32,6 +34,8 @@ public class SwarmManager extends Command {
     public SwarmManager() {
         super("manager", "Sends a message.");
     }
+
+    private static boolean circling = false;
 
     @Override
     public void build(LiteralArgumentBuilder<CommandSource> builder) {
@@ -84,6 +88,7 @@ public class SwarmManager extends Command {
                         }
                         Module m = ModuleArgumentType.get(context);
                         SwarmPlusMaster.swarmServer.broadcast("[METEOR] toggle " + m.name);
+                        this.info("Toggled (highlight)%s(default) for all swarm members.",m.name);
                         return SINGLE_SUCCESS;
                     }).then(literal("on")
                         .executes(context -> {
@@ -93,6 +98,7 @@ public class SwarmManager extends Command {
                             }
                             Module m = ModuleArgumentType.get(context);
                             SwarmPlusMaster.swarmServer.broadcast("[METEOR] toggle " + m.name + " on");
+                            this.info("Toggled (highlight)%s(default) on for all swarm members.",m.name);
                             return SINGLE_SUCCESS;
                         }))
                     .then(literal("off")
@@ -103,6 +109,7 @@ public class SwarmManager extends Command {
                             }
                             Module m = ModuleArgumentType.get(context);
                             SwarmPlusMaster.swarmServer.broadcast("[METEOR] toggle " + m.name + " off");
+                            this.info("Toggled (highlight)%s(default) off for all swarm members.",m.name);
                             return SINGLE_SUCCESS;
                     }))
                 )
@@ -121,7 +128,7 @@ public class SwarmManager extends Command {
                                     String value = SettingValueArgumentType.get(context);
 
                                     SwarmPlusMaster.swarmServer.broadcast("[METEOR] settings %s %s %s".formatted(module.name,setting.name,value));
-                                    ModuleArgumentType.get(context).info("Setting %s changed in %s to %s for all swarm members.", module.title, setting.title, value);
+                                    ModuleArgumentType.get(context).info("Setting (highlight)%s(default) changed in (highlight)%s(default) to (highlight)%s(default) for all swarm members.", module.title, setting.title, value);
 
                                     return SINGLE_SUCCESS;
                                 }))
@@ -133,6 +140,10 @@ public class SwarmManager extends Command {
                     .executes(context -> {
                         if (MeteorClient.mc.player == null) {
                             info("How did we get here?");
+                            return SINGLE_SUCCESS;
+                        }
+                        if (SwarmPlusMaster.swarmServer == null) {
+                            error("SwarmPlusMaster module is disabled. Start a swarm server to send commands to it!");
                             return SINGLE_SUCCESS;
                         }
                         int rad = context.getArgument("radius",Integer.class);
@@ -151,6 +162,10 @@ public class SwarmManager extends Command {
             )
             .then(literal("here")
                 .executes(context -> {
+                    if (SwarmPlusMaster.swarmServer == null) {
+                        error("SwarmPlusMaster module is disabled. Start a swarm server to send commands to it!");
+                        return SINGLE_SUCCESS;
+                    }
                     int roundX = (int) Math.round(MeteorClient.mc.player.getX());
                     int roundY = (int) Math.round(MeteorClient.mc.player.getY());
                     int roundZ = (int) Math.round(MeteorClient.mc.player.getZ());
@@ -164,6 +179,10 @@ public class SwarmManager extends Command {
                 })
                 .then(argument("target",StringArgumentType.string())
                     .executes(context -> {
+                        if (SwarmPlusMaster.swarmServer == null) {
+                            error("SwarmPlusMaster module is disabled. Start a swarm server to send commands to it!");
+                            return SINGLE_SUCCESS;
+                        }
                         String target = StringArgumentType.getString(context,"target");
                         int roundX = (int) Math.round(MeteorClient.mc.player.getX());
                         int roundY = (int) Math.round(MeteorClient.mc.player.getY());
@@ -184,6 +203,10 @@ public class SwarmManager extends Command {
             )
             .then(literal("goto")
                 .then(argument("y", IntegerArgumentType.integer()).executes(context -> {
+                    if (SwarmPlusMaster.swarmServer == null) {
+                        error("SwarmPlusMaster module is disabled. Start a swarm server to send commands to it!");
+                        return SINGLE_SUCCESS;
+                    }
                     SwarmPlusMaster.swarmServer.broadcast("[BARITONE] gotoy %s".formatted(
                         IntegerArgumentType.getInteger(context,"y")
                     ));
@@ -195,6 +218,10 @@ public class SwarmManager extends Command {
                 .then(argument("x",IntegerArgumentType.integer())
                     .then(argument("z",IntegerArgumentType.integer())
                         .executes(context -> {
+                            if (SwarmPlusMaster.swarmServer == null) {
+                                error("SwarmPlusMaster module is disabled. Start a swarm server to send commands to it!");
+                                return SINGLE_SUCCESS;
+                            }
                             SwarmPlusMaster.swarmServer.broadcast("[BARITONE] gotoxz %s %s".formatted(
                                     IntegerArgumentType.getInteger(context,"x"),
                                     IntegerArgumentType.getInteger(context,"z")
@@ -208,6 +235,10 @@ public class SwarmManager extends Command {
                     .then(argument("y",IntegerArgumentType.integer())
                         .then(argument("z",IntegerArgumentType.integer())
                             .executes(context -> {
+                                if (SwarmPlusMaster.swarmServer == null) {
+                                    error("SwarmPlusMaster module is disabled. Start a swarm server to send commands to it!");
+                                    return SINGLE_SUCCESS;
+                                }
                                 SwarmPlusMaster.swarmServer.broadcast("[BARITONE] gotoxyz %s %s %s".formatted(
                                         IntegerArgumentType.getInteger(context,"x"),
                                         IntegerArgumentType.getInteger(context,"y"),
@@ -226,6 +257,10 @@ public class SwarmManager extends Command {
                     .then(argument("pitch", DoubleArgumentType.doubleArg(0,360))
                         .then(argument("yaw", DoubleArgumentType.doubleArg(0,360))
                             .executes(context -> {
+                                if (SwarmPlusMaster.swarmServer == null) {
+                                    error("SwarmPlusMaster module is disabled. Start a swarm server to send commands to it!");
+                                    return SINGLE_SUCCESS;
+                                }
                                 SwarmPlusMaster.swarmServer.broadcast("[LOOK] absolute %s %s".formatted(
                                     context.getArgument("pitch",double.class),
                                     context.getArgument("yaw",double.class)));
@@ -239,8 +274,12 @@ public class SwarmManager extends Command {
                 .then(literal("player")
                     .then(argument("target",PlayerArgumentType.create())
                         .executes(context -> {
-                            SwarmPlusMaster.swarmServer.broadcast("[LOOK] player %s".formatted(context.getArgument("target",String.class)));
-                            SwarmManager.this.info("Bots now targeting (highlight)%s",context.getArgument("target",String.class));
+                            if (SwarmPlusMaster.swarmServer == null) {
+                                error("SwarmPlusMaster module is disabled. Start a swarm server to send commands to it!");
+                                return SINGLE_SUCCESS;
+                            }
+                            SwarmPlusMaster.swarmServer.broadcast("[LOOK] player %s".formatted(context.getArgument("target",PlayerEntity.class).getName().getString()));
+                            SwarmManager.this.info("Bots now targeting (highlight)%s",context.getArgument("target",PlayerEntity.class).getName().getString());
                             return SINGLE_SUCCESS;
                         }))
                 )
@@ -248,12 +287,66 @@ public class SwarmManager extends Command {
             .then(literal("follow")
                 .then(argument("player", PlayerArgumentType.create())
                     .executes(context -> {
+                        if (SwarmPlusMaster.swarmServer == null) {
+                            error("SwarmPlusMaster module is disabled. Start a swarm server to send commands to it!");
+                            return SINGLE_SUCCESS;
+                        }
                         PlayerEntity pe = PlayerArgumentType.get(context);
                         SwarmPlusMaster.swarmServer.broadcast("[BARITONE] follow %s".formatted(pe.getName().getString()));
                         SwarmManager.this.info("Bots now following (highlight)%s(default).",pe.getName().getString());
                         return SINGLE_SUCCESS;
-                    }))
+                    })
+                    .then(literal("circle")
+                        .then(argument("radius",IntegerArgumentType.integer(1))
+                            .then(argument("update-freq", IntegerArgumentType.integer(0,10000))
+                                .executes(context -> {
+                                    if (SwarmPlusMaster.swarmServer == null) {
+                                        error("SwarmPlusMaster module is disabled. Start a swarm server to send commands to it!");
+                                        return SINGLE_SUCCESS;
+                                    }
+                                    PlayerEntity pe = PlayerArgumentType.get(context);
+                                    circling = !circling;
+                                    SwarmManager.this.info("Bots are %s circling (highlight)%s(default).",circling ? "now" : "no longer", pe.getName().getString());
+
+                                    if (circling) {
+                                        int delay = IntegerArgumentType.getInteger(context,"update-freq");
+                                        if (delay <= 0){
+                                            SwarmManager.this.error("CHECK YOUR CONSOLE BOI + INVALID INTEGER INPUT");
+                                            return SINGLE_SUCCESS;
+                                        }
+
+                                        Thread thread = new Thread(() -> {
+                                            while (circling) {
+                                                try {
+                                                    int rad = context.getArgument("radius",Integer.class);
+                                                    int n = SwarmPlusMaster.swarmServer.connectionCount();
+                                                    Point2D.Double[] distribution = MathUtils.distributePoints(MeteorClient.mc.player.getX(),MeteorClient.mc.player.getZ(),rad,n);
+                                                    int index = 0;
+                                                    for (Connection connection : SwarmPlusMaster.swarmServer.getConnections()) {
+                                                        int x = (int) Math.round(distribution[index].x);
+                                                        int z = (int) Math.round(distribution[index].y);
+                                                        connection.sendMessage("[BARITONE] gotoxz %s %s".formatted(x,z));
+                                                        index++;
+                                                    }
+                                                    Thread.sleep(delay);
+                                                } catch (Exception ex) {
+                                                    ex.printStackTrace();
+                                                    SwarmManager.this.error("CHECK YOUR CONSOLE BOI");
+                                                }
+                                            }
+                                        });
+                                        thread.start();
+                                    }
+                                    return SINGLE_SUCCESS;
+                                }))
+                        )
+                    )
+                )
             )
+            .then(literal("leaveserver").executes(context -> {
+                SwarmPlusMaster.swarmServer.broadcast("[LEAVE]");
+                return SINGLE_SUCCESS;
+            }))
             .then(literal("closegame").executes(context -> {
                 SwarmPlusMaster.swarmServer.broadcast("[CLOSEGAME]");
                 return SINGLE_SUCCESS;

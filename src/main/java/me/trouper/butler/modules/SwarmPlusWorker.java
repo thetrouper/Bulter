@@ -6,6 +6,7 @@ import me.trouper.butler.server.Client;
 import me.trouper.butler.server.Response;
 import me.trouper.butler.utils.MathUtils;
 import me.trouper.butler.utils.Text;
+import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.config.Config;
 import meteordevelopment.meteorclient.systems.modules.Module;
@@ -79,14 +80,19 @@ public class SwarmPlusWorker extends Module {
                         switch (largs[0]) {
                             case "player" -> {
                                 String target = largs[1];
-                                for (Entity entity : mc.player.clientWorld.getEntities()) {
-                                    if (!(entity instanceof PlayerEntity)) continue;
-                                    if (!entity.getName().getString().equalsIgnoreCase(target)) continue;
-                                    Vec3d vec = entity.getEyePos().subtract(mc.player.getEyePos()).normalize();
-                                    float[] rot = MathUtils.toPolar(vec.x,vec.y,vec.z);
-                                    mc.player.setPitch(rot[0]);
-                                    mc.player.setYaw(rot[1]);
-                                    return;
+                                try {
+                                    for (Entity entity : mc.player.clientWorld.getEntities()) {
+                                        if (!(entity instanceof PlayerEntity)) continue;
+                                        if (!entity.getName().getString().equalsIgnoreCase(target)) continue;
+                                        Vec3d vec = entity.getEyePos().subtract(mc.player.getEyePos()).normalize();
+                                        float[] rot = MathUtils.toPolar(vec.x,vec.y,vec.z);
+                                        mc.player.setPitch(rot[0]);
+                                        mc.player.setYaw(rot[1]);
+                                        return;
+                                    }
+                                } catch (Exception ex) {
+                                    ex.printStackTrace();
+                                    this.sendToServer("An error occurred whilst trying to rotate to %s!".formatted(target));
                                 }
                             }
                             case "absolute" -> {
@@ -130,6 +136,10 @@ public class SwarmPlusWorker extends Module {
                                 SwarmPlusWorker.this.info("Following (highlight)%s",player);
                             }
                         }
+                    }
+                    case "LEAVE" -> {
+                        SwarmPlusWorker.this.info("Quit Server call from host!");
+                        MeteorClient.mc.disconnect();
                     }
                     case "CLOSEGAME" -> {
                         SwarmPlusWorker.this.info("Close game call from host!");
